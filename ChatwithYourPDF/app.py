@@ -80,22 +80,28 @@ def compress_with_llumo(text, topic=None):
         response.raise_for_status()
         result = response.json()
         
-        data = result['data']['data']
-        data_content = json.loads(data)
         
-        compressed_text = data_content.get('compressedPrompt', text)
-        initial_tokens = data_content.get('initialTokens', 0)
-        final_tokens = data_content.get('finalTokens', 0)
-        
-        if initial_tokens and final_tokens:
-            compression_percentage = ((initial_tokens - final_tokens) / initial_tokens) * 100
+        # Check for 'data' key in the response
+        if 'data' in result and 'data' in result['data']:
+            data = result['data']['data']
+            data_content = json.loads(data)
+            
+            compressed_text = data_content.get('compressedPrompt', text)
+            initial_tokens = data_content.get('initialTokens', 0)
+            final_tokens = data_content.get('finalTokens', 0)
+            
+            if initial_tokens and final_tokens:
+                compression_percentage = ((initial_tokens - final_tokens) / initial_tokens) * 100
+            else:
+                compression_percentage = 0
+            
+            return compressed_text, True, compression_percentage, initial_tokens, final_tokens
         else:
-            compression_percentage = 0
-        
-        return compressed_text, True, compression_percentage, initial_tokens, final_tokens
+            raise KeyError("'data' key not found in the response")
+    
     except (json.JSONDecodeError, requests.RequestException, KeyError) as e:
-        logger.error(f"Error: {str(e)}")
-        st.error(f"Error: {str(e)}")
+        logger.error(f"Error compressing text: {str(e)}")
+        st.error(f"Error compressing text: {str(e)}")
         return text, False, 0, 0, 0
 
 # Main function
